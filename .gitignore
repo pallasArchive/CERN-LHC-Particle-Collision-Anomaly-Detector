@@ -1,0 +1,21 @@
+# Compiled class files
+*.class
+out/
+bin/
+build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / exports produced at runtime
+*.csv
+*.log
