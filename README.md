@@ -20,7 +20,7 @@ NUST.
   factors, 4-momentum conservation, boost to and from the center-of-momentum
   frame.
 - Reconstructs the **invariant mass** of each collision the way a real
-  detector would: m² = (ΣE)²/c⁴ − |Σp|²/c².
+  detector would: $m^2 = (\Sigma E)^2/c^4 - |\Sigma \vec{p}|^2/c^2$.
 - Streams **real CMS dimuon data** live from CERN's Open Data Portal
   (`opendata.cern.ch/record/545`), falling back to a synthetic spectrum if
   offline.
@@ -34,13 +34,28 @@ NUST.
 
 ## The physics
 
-| Quantity | Formula |
-|---|---|
-| Lorentz factor | γ = 1 / √(1 − β²) |
-| Kinetic energy | KE = (γ − 1) · m · c² |
-| Momentum | p = γ · m · v |
-| Invariant mass | m² = (ΣE)²/c⁴ − \|Σp\|²/c² |
-| Anomaly score | z = (x − μ) / σ, μ and σ from Welford's algorithm |
+**Lorentz factor**
+
+$$\gamma = \frac{1}{\sqrt{1 - \beta^2}}$$
+
+**Kinetic energy**
+
+$$KE = (\gamma - 1)\, m c^2$$
+
+**Momentum**
+
+$$p = \gamma m v$$
+
+**Invariant mass**
+
+$$m^2 = \frac{(\Sigma E)^2}{c^4} - \frac{|\Sigma \vec{p}\,|^2}{c^2}$$
+
+**Anomaly score**
+
+$$z = \frac{x - \mu}{\sigma}$$
+
+where $\mu$ and $\sigma$ are the rolling mean and standard deviation,
+computed online via Welford's algorithm.
 
 ## Running it
 
@@ -89,4 +104,4 @@ dataset), used here for educational purposes.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Feel free to fork, adapt, or build on it.
+MIT - see [LICENSE](LICENSE). Feel free to fork, adapt, or build on it.
