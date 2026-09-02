@@ -9,34 +9,34 @@ import java.util.List;
 //Particle collision simulation using real CMS dimuon data from opendata.cern.ch/545
 public class ParticleSimulation extends JFrame {
     //defining all colours for GUI
-    static final Color Bg = new Color(4, 6, 16);
-    static final Color Grid_col = new Color(11, 18, 38);
-    static final Color Beam_a_col = new Color(56, 189, 248); //proton beam A, cyan
-    static final Color Beam_b_col = new Color(236, 72, 153); //proton beam B, pink
-    static final Color Muon_col = new Color(250, 204, 21);
-    static final Color Pion_col = new Color(52, 211, 153);
-    static final Color Anom_col = new Color(239, 68, 68);
-    static final Color Z_col = new Color(167, 139, 250);
-    static final Color Higgs_col = new Color(255, 215, 0);
-    static final Color Panel_bg = new Color(8, 12, 28);
-    static final Color Card_bg = new Color(11, 16, 34);
-    static final Color Border = new Color(28, 40, 70);
-    static final Color Text_dim = new Color(71, 85, 105);
-    static final Color Text_mid = new Color(110, 130, 160);
-    static final Color Text_hi = new Color(200, 215, 235);
-    static final Color Accent = new Color(56, 189, 248);
-    static final Color Green = new Color(52, 211, 153);
+    static final Color Bg = new Color(2, 3, 10);
+    static final Color Grid_col = new Color(18, 28, 58);
+    static final Color Beam_a_col = new Color(45, 226, 255); //proton beam A, bright cyan
+    static final Color Beam_b_col = new Color(255, 46, 146); //proton beam B, bright magenta
+    static final Color Muon_col = new Color(255, 214, 10);
+    static final Color Pion_col = new Color(0, 245, 160);
+    static final Color Anom_col = new Color(255, 59, 78);
+    static final Color Z_col = new Color(192, 132, 252);
+    static final Color Higgs_col = new Color(255, 234, 0);
+    static final Color Panel_bg = new Color(9, 13, 30);
+    static final Color Card_bg = new Color(13, 18, 42);
+    static final Color Border = new Color(38, 54, 92);
+    static final Color Text_dim = new Color(104, 122, 158);
+    static final Color Text_mid = new Color(154, 176, 212);
+    static final Color Text_hi = new Color(240, 246, 255);
+    static final Color Accent = new Color(45, 226, 255);
+    static final Color Green = new Color(0, 245, 160);
 
-    //physical constants; PDG 2022 values, c scaled to sim units
+    //physical constants; PDG world-average masses, c scaled to sim units
     static final double C = 10.0;
     static final double Proton_m = 938.272;  // MeV/c^2
     static final double Muon_m = 105.658;
     static final double Pion_m = 139.570;
     static final double Inelastic = 0.88;
     static final double Z_thresh = 2.5;
-    static final double Z_mass = 91188.0;
+    static final double Z_mass = 91188.0;    // Z boson, MeV/c^2 (width ~2495 MeV)
     static final double Z_win = 4000.0;
-    static final double H_mass = 125090.0;
+    static final double H_mass = 125090.0;   // Higgs boson, MeV/c^2 (ATLAS+CMS Run-1 legacy combination, 2015)
     static final double H_win = 3000.0;
     static final double Resolution_smear = 0.02;
     static final double Trigger_eff = 0.30;
@@ -46,7 +46,9 @@ public class ParticleSimulation extends JFrame {
     static final int Side_w = 460;
     static final int Hist_h = 130;
     static final int Fps = 60;
-    static final int Bins = 120;
+    // Wide enough (150 GeV) that the Higgs window at 125 GeV actually falls inside
+    // the plotted range — at 120 it silently fell outside the histogram.
+    static final int Bins = 150;
     
     int Sw = 800, Sh = 550;
     final List<Double> cernMasses = new ArrayList<>();
@@ -225,6 +227,75 @@ public class ParticleSimulation extends JFrame {
             sigma = n < 2 ? 0 : Math.sqrt(m2 / (n-1));
             return sigma < 1e-9 ? 0 : (v - mu) / sigma;}
         void reset() { mu = 0; m2 = 0; sigma = 0; n = 0; total = 0; }}
+
+    // A small hand-rolled math typesetter. Swing has no LaTeX renderer, so this
+    // draws equations the way LaTeX would lay them out — italic serif variables,
+    // upright numerals/operators, true raised/lowered super/subscripts, and
+    // fraction bars — instead of a flat monospaced string with unicode symbols.
+    static class MathType {
+        static Font font(int size, boolean italic) {
+            return new Font("Serif", italic ? Font.ITALIC : Font.PLAIN, size);
+        }
+        static int widthOf(Graphics2D g2, String s, int size, boolean italic) {
+            return g2.getFontMetrics(font(size, italic)).stringWidth(s);
+        }
+        static int drawPlain(Graphics2D g2, String s, int x, int y, int size, Color c, boolean italic) {
+            g2.setFont(font(size, italic));
+            g2.setColor(c);
+            g2.drawString(s, x, y);
+            return g2.getFontMetrics().stringWidth(s);
+        }
+        static int drawSup(Graphics2D g2, String s, int x, int y, int baseSize, Color c) {
+            int size = Math.max(9, (int) (baseSize * 0.62));
+            return drawPlain(g2, s, x, y - (int) (baseSize * 0.38), size, c, false);
+        }
+        static int drawSub(Graphics2D g2, String s, int x, int y, int baseSize, Color c) {
+            int size = Math.max(9, (int) (baseSize * 0.62));
+            return drawPlain(g2, s, x, y + (int) (baseSize * 0.30), size, c, false);
+        }
+        static int drawFrac(Graphics2D g2, String num, String den, int x, int y, int baseSize, Color c) {
+            int size = (int) (baseSize * 0.8);
+            int wN = widthOf(g2, num, size, false), wD = widthOf(g2, den, size, false);
+            int w = Math.max(wN, wD) + 8;
+            drawPlain(g2, num, x + (w - wN) / 2, y - (int) (baseSize * 0.32), size, c, false);
+            drawPlain(g2, den, x + (w - wD) / 2, y + (int) (baseSize * 0.60), size, c, false);
+            g2.setColor(c);
+            g2.setStroke(new BasicStroke(1.4f));
+            g2.drawLine(x, y - (int) (baseSize * 0.10), x + w, y - (int) (baseSize * 0.10));
+            return w;
+        }
+        static int drawSqrt(Graphics2D g2, String inner, int x, int y, int baseSize, Color c) {
+            Font radFont = font((int) (baseSize * 1.15), false);
+            g2.setFont(radFont);
+            g2.setColor(c);
+            String rad = "\u221A";
+            g2.drawString(rad, x, y);
+            int radW = g2.getFontMetrics().stringWidth(rad);
+            int innerW = widthOf(g2, inner, baseSize, false);
+            g2.setStroke(new BasicStroke(1.4f));
+            g2.drawLine(x + radW - 3, y - (int) (baseSize * 0.85),
+                        x + radW - 3 + innerW + 5, y - (int) (baseSize * 0.85));
+            drawPlain(g2, inner, x + radW, y, baseSize, c, false);
+            return radW + innerW + 5;
+        }
+
+        // Fluent builder — chain .txt()/.sup()/.sub()/.frac()/.sqrt()/.gap() left to
+        // right along one baseline to compose a full equation.
+        static class Eq {
+            final Graphics2D g2;
+            int x; final int y, size;
+            final Color c;
+            Eq(Graphics2D g2, int x, int y, int size, Color c) {
+                this.g2 = g2; this.x = x; this.y = y; this.size = size; this.c = c;
+            }
+            Eq txt(String s, boolean italic) { x += drawPlain(g2, s, x, y, size, c, italic); return this; }
+            Eq sup(String s) { x += drawSup(g2, s, x, y, size, c); return this; }
+            Eq sub(String s) { x += drawSub(g2, s, x, y, size, c); return this; }
+            Eq frac(String num, String den) { x += drawFrac(g2, num, den, x, y, size, c) + 6; return this; }
+            Eq sqrt(String inner) { x += drawSqrt(g2, inner, x, y, size, c) + 4; return this; }
+            Eq gap(int px) { x += px; return this; }
+        }
+    }
 
     static class Particle {
         final String name;
@@ -418,29 +489,48 @@ public class ParticleSimulation extends JFrame {
             for (Particle b : beamB.parts)
                 if (a.overlaps(b)) collide(a, b);}
 
+    // Splits the kinetic energy lost in an inelastic collision into 2–4 visualized
+    // decay-product sprites (muons/pions). The first n-1 products are given random
+    // energies and directions; the LAST product is solved for exactly, taking
+    // whatever momentum is left over. This guarantees the sprites' momenta sum to
+    // exactly (pxTotal, pyTotal) — an approximate directional bias would leave the
+    // visualized "decay" not actually conserving momentum.
     void spawnProductsWithMomentum(double cx, double cy, double totalKe, double pxTotal, double pyTotal) {
         int n = 2 + rng.nextInt(3);
+        double[] px = new double[n], py = new double[n], mass = new double[n];
+        boolean[] isMuon = new boolean[n];
         double remainingKe = totalKe;
-        double remainingPx = pxTotal;
-        for (int i = 0; i < n; i++) {
-            boolean isMuon = rng.nextBoolean();
-            double mass = isMuon ? Muon_m : Pion_m;
-            double maxKe = remainingKe / (n - i);
-            if (maxKe <= 0) break;
-            double keFraction = 0.3 + rng.nextDouble() * 0.5;
-            double ke = maxKe * keFraction;
+        double spentPx = 0, spentPy = 0;
+
+        for (int i = 0; i < n - 1; i++) {
+            isMuon[i] = rng.nextBoolean();
+            mass[i] = isMuon[i] ? Muon_m : Pion_m;
+            double maxKe = Math.max(0, remainingKe) / (n - i);
+            double ke = maxKe * (0.3 + rng.nextDouble() * 0.5);
             remainingKe -= ke;
-            double momentum = Math.sqrt(ke * ke + 2 * ke * mass * C * C) / C;
+            double p = Math.sqrt(Math.max(0, ke * ke + 2 * ke * mass[i] * C * C)) / C;
             double angle = rng.nextDouble() * 2 * Math.PI;
-            double assignedPx = momentum * Math.cos(angle) * (remainingPx > 0 ? 1 : -1);
-            double assignedPy = momentum * Math.sin(angle);
-            remainingPx -= assignedPx;
-            double vx = assignedPx * C * C / Math.sqrt(assignedPx * assignedPx * C * C + mass * mass * C * C * C * C);
-            double vy = assignedPy * C * C / Math.sqrt(assignedPy * assignedPy * C * C + mass * mass * C * C * C * C);
+            px[i] = p * Math.cos(angle);
+            py[i] = p * Math.sin(angle);
+            spentPx += px[i]; spentPy += py[i];
+        }
+
+        int last = n - 1;
+        isMuon[last] = rng.nextBoolean();
+        mass[last] = isMuon[last] ? Muon_m : Pion_m;
+        px[last] = pxTotal - spentPx;
+        py[last] = pyTotal - spentPy;
+
+        for (int i = 0; i < n; i++) {
+            double mC2 = mass[i] * C * C;
+            double e = Math.sqrt((px[i]*px[i] + py[i]*py[i]) * C * C + mC2 * mC2);
+            double vx = px[i] * C * C / e;
+            double vy = py[i] * C * C / e;
             products.add(new ProductSprite(cx, cy, vx, vy,
-                isMuon ? Muon_col : Pion_col,
-                isMuon ? "μ" : "π",
-                40 + rng.nextInt(30), mass));}}
+                isMuon[i] ? Muon_col : Pion_col,
+                isMuon[i] ? "μ" : "π",
+                40 + rng.nextInt(30), mass[i]));
+        }}
 
     void collide(Particle a, Particle b) {
         totalCollisions++;
@@ -461,7 +551,23 @@ public class ParticleSimulation extends JFrame {
         double betaCm = (pA + pB) * C * C / Etot;
         if (Math.abs(betaCm) >= 1) betaCm = Math.signum(betaCm) * 0.999;
         double gammaCm = 1.0/Math.sqrt(1 - betaCm * betaCm);
-        double pAcm = gammaCm * (pA - betaCm * a.E() / C);
+
+        // Particle A's momentum along the collision normal, boosted into the CM
+        // frame. In a two-body CM frame the incoming momenta are always equal and
+        // opposite, so this one magnitude describes both particles' incoming state.
+        double pAcmIn = gammaCm * (pA - betaCm * a.E() / C);
+
+        // Inelasticity is applied HERE — as a reduction of the CM-frame momentum
+        // magnitude that gets exchanged — rather than by rescaling each particle's
+        // final lab-frame velocity afterwards. Relativistic momentum p = γmv is not
+        // linear in v, so independently scaling v_a and v_b by the same factor does
+        // NOT preserve total lab-frame momentum. Shrinking the CM-frame split before
+        // boosting back does: the boost-back algebra conserves total momentum for
+        // any choice of CM-frame momentum magnitude, while a smaller magnitude
+        // correctly carries away less kinetic energy — exactly how a real inelastic
+        // collision dissipates energy without violating momentum conservation.
+        double pAcm = pAcmIn * Math.sqrt(Inelastic);
+
         double eAcm = Math.sqrt(pAcm*pAcm * C*C + Math.pow(a.mass * C*C, 2));
         double eBcm = Math.sqrt(pAcm*pAcm * C*C + Math.pow(b.mass * C*C, 2));
         double pAf = gammaCm * (-pAcm + betaCm * eAcm / C);
@@ -472,10 +578,6 @@ public class ParticleSimulation extends JFrame {
         a.vy = (pAf * ny + aYp) * C*C / eAf;
         b.vx = (pBf * nx + bXp) * C*C / eBf;
         b.vy = (pBf * ny + bYp) * C*C / eBf;
-
-        double sf = Math.sqrt(Inelastic);
-        a.vx *= sf; a.vy *= sf;
-        b.vx *= sf; b.vy *= sf;
         clampSpeed(a); clampSpeed(b);
 
         double overlap = (a.r + b.r) - dist + 1;
@@ -556,7 +658,7 @@ public class ParticleSimulation extends JFrame {
                         "CLICK anywhere to resume"
                     }, Z_col);}
         } else {
-            flashes.add(new Flash(cx, cy, new Color(160, 200, 255), 7, 16));}}
+            flashes.add(new Flash(cx, cy, new Color(190, 225, 255), 7, 16));}}
 
     void showOverlay(String title, String sub, String[] body, Color col) {
         overlayTitle = title; overlaySub = sub; overlayLines = body; overlayAccent = col;
@@ -637,7 +739,7 @@ public class ParticleSimulation extends JFrame {
         JButton exportBtn = makeBtn("Export");
         JButton resetBtn  = makeBtn("Reset");
         JButton infoBtn   = makeBtn("Info");
-        JButton disclaimerBtn = makeBtn("Disclaimer");
+        JButton disclaimerBtn = makeBtn("Caveats");
 
         startBtn.setForeground(Green); 
         pauseBtn.setEnabled(false);
@@ -706,31 +808,12 @@ public class ParticleSimulation extends JFrame {
 
         infoBtn.addActionListener(e -> {
             boolean wasP = paused; paused = true;
-            String msg = 
-                "BEAMS: Proton (938 MeV) both directions, SAME AXIS\n" +
-                "RF cavity: 92% c, reinject below 80% c\n" +
-                "Detector: " + (int)(Resolution_smear*100) + "% smear, " + (int)(Trigger_eff*100) + "% trigger\n" +
-                "Classes: ParticleBeam, Particle, CollisionEvent, Detector, AnomalyRegister\n" +
-                "Physics: γ = 1/√(1−v²/c²), KE=(γ−1)mc², m_inv² = (ΣE)²/c⁴ − |Σp|²/c²\n" +
-                "Data: opendata.cern.ch/record/545";
-            JOptionPane.showMessageDialog(this, msg, "Info", JOptionPane.INFORMATION_MESSAGE);
+            showFormulaDialog();
             paused = wasP;});
-        
+
         disclaimerBtn.addActionListener(e -> {
             boolean wasP = paused; paused = true;
-            String msg = 
-                "⚠ SIMPLIFICATIONS ⚠\n\n" +
-                "• Collision = automatic overlap (real physics has cross-section probability)\n" +
-                "• μ/π products use approximate kinematics (real needs PYTHIA)\n" +
-                "• Perfect detection efficiency (real has geometric acceptance)\n" +
-                "• No QCD background (real has Drell-Yan, bb, cc)\n" +
-                "• 2D visualization (real CMS is 3D with 3.8T solenoid)\n" +
-                "• Simplified RF cavity (real LHC uses superconducting cavities)\n\n" +
-                "✓ WHAT'S ACCURATE: Relativistic kinematics, invariant mass method,\n" +
-                "  Z boson resonance from real CMS data, z-score anomaly detection,\n" +
-                "  detector resolution smearing, trigger efficiency modeling.\n\n" +
-                "Educational visualization — not production HEP code.";
-            JOptionPane.showMessageDialog(this, msg, "Disclaimer", JOptionPane.WARNING_MESSAGE);
+            showDisclaimerDialog();
             paused = wasP;});
 
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 7));
@@ -754,9 +837,157 @@ public class ParticleSimulation extends JFrame {
         b.setForeground(Text_hi);
         b.setBackground(new Color(20, 32, 55));
         b.setFocusPainted(false); b.setBorderPainted(false);
-        b.setPreferredSize(new Dimension(75, 24));
+        b.setPreferredSize(new Dimension(88, 24));
         b.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return b;}
+
+    // A JDialog styled to match the app's dark theme, rather than the OS-default
+    // light JOptionPane popup that would otherwise clash with everything else.
+    JDialog buildStyledDialog(String title, Color accent, int w, int h) {
+        JDialog dlg = new JDialog(this, title, true);
+        dlg.getContentPane().setBackground(Bg);
+        dlg.setLayout(new BorderLayout());
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(Card_bg);
+        header.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, accent),
+            BorderFactory.createEmptyBorder(10, 16, 10, 16)));
+        JLabel titleLbl = new JLabel(title);
+        titleLbl.setFont(new Font("Serif", Font.BOLD, 17));
+        titleLbl.setForeground(accent);
+        header.add(titleLbl, BorderLayout.WEST);
+        JButton close = makeBtn("Close");
+        close.addActionListener(e -> dlg.dispose());
+        header.add(close, BorderLayout.EAST);
+        dlg.add(header, BorderLayout.NORTH);
+
+        dlg.setSize(w, h);
+        dlg.setLocationRelativeTo(this);
+        return dlg;
+    }
+
+    void showFormulaDialog() {
+        JDialog dlg = buildStyledDialog("Physics Reference", Accent, 620, 640);
+
+        FormulaPanel fp = new FormulaPanel();
+        fp.setPreferredSize(new Dimension(600, 300));
+
+        JTextArea facts = new JTextArea(
+            "PHYSICAL CONSTANTS (PDG world averages)\n" +
+            "  Proton mass        938.272 MeV/c²\n" +
+            "  Muon mass          105.658 MeV/c²\n" +
+            "  Charged pion mass  139.570 MeV/c²\n" +
+            "  Z boson mass       91.1876 GeV/c²  (width ≈ 2.4952 GeV)\n" +
+            "  Higgs boson mass   125.09 GeV/c²   (ATLAS+CMS Run-1 legacy combination, 2015)\n\n" +
+            "STATISTICAL METHOD\n" +
+            "  The rolling mean (μ) and standard deviation (σ) of the reconstructed\n" +
+            "  invariant mass are updated online via Welford's algorithm (Welford,\n" +
+            "  1962), which avoids the numerical cancellation of the naive sum-of-\n" +
+            "  squares formula. An event is flagged when |z| exceeds " + Z_thresh + ".\n\n" +
+            "IMPORTANT CAVEAT\n" +
+            "  This z-score is GLOBAL across the whole mass spectrum. A genuine\n" +
+            "  resonance (e.g. the Z peak) can register a large |z| relative to the\n" +
+            "  rolling mean even though it is real physics, not noise. Rigorous\n" +
+            "  bump-hunting uses a LOCAL, background-subtracted significance instead\n" +
+            "  of one global z-score — see the S/√B readout under the histogram.\n\n" +
+            "DATA\n" +
+            "  Dimuon invariant masses are replayed from the CMS Open Data\n" +
+            "  \"Dimuon_DoubleMu\" dataset (opendata.cern.ch/record/545) when a\n" +
+            "  network connection is available, falling back to a synthetic\n" +
+            "  spectrum otherwise. Status: " + dataStatus + "\n\n" +
+            "WHAT IS SIMPLIFIED HERE\n" +
+            "  • 2D visualization — the real detector sits inside a 3.8 T solenoid.\n" +
+            "  • Collision = geometric overlap, not a cross-section probability.\n" +
+            "  • Trigger efficiency (" + (int) (Trigger_eff * 100) + "%) and resolution smearing (" +
+            (int) (Resolution_smear * 100) + "%)\n" +
+            "    are flat placeholders — real CMS curves depend on pT and η.\n" +
+            "  • Z/Higgs windows are simple mass cuts, not a fitted signal-vs-\n" +
+            "    background significance with a look-elsewhere-effect correction."
+        );
+        facts.setEditable(false);
+        facts.setLineWrap(true);
+        facts.setWrapStyleWord(true);
+        facts.setFont(new Font("Monospaced", Font.PLAIN, 11));
+        facts.setBackground(Panel_bg);
+        facts.setForeground(Text_hi);
+        facts.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
+        facts.setCaretPosition(0);
+        JScrollPane scroll = new JScrollPane(facts);
+        scroll.getViewport().setBackground(Panel_bg);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+
+        JPanel body = new JPanel(new BorderLayout());
+        body.setBackground(Bg);
+        body.add(fp, BorderLayout.NORTH);
+        body.add(scroll, BorderLayout.CENTER);
+        dlg.add(body, BorderLayout.CENTER);
+        dlg.setVisible(true);
+    }
+
+    void showDisclaimerDialog() {
+        JDialog dlg = buildStyledDialog("Disclaimer", Anom_col, 560, 480);
+        JTextArea msg = new JTextArea(
+            "⚠ SIMPLIFICATIONS\n\n" +
+            "• Collision = geometric overlap, not a real cross-section probability\n" +
+            "• Visualized μ/π decay products conserve momentum exactly, but use\n" +
+            "  simplified (non-PYTHIA) kinematics\n" +
+            "• Idealized detector: flat resolution smearing & flat trigger\n" +
+            "  efficiency, not the pT/η-dependent curves a real detector has\n" +
+            "• No QCD background processes (Drell-Yan continuum, bb̄, cc̄)\n" +
+            "• 2D visualization — real CMS is 3D, inside a 3.8 T solenoid\n" +
+            "• Simplified RF cavity model (real LHC uses superconducting cavities)\n\n" +
+            "✓ WHAT'S ACCURATE\n\n" +
+            "• Full relativistic kinematics — γ, 4-momentum, CM-frame boost — with\n" +
+            "  total momentum conserved exactly, including through inelastic\n" +
+            "  energy loss\n" +
+            "• The invariant-mass reconstruction method itself\n" +
+            "• The Z boson resonance, built from real CMS Open Data\n" +
+            "• Online (Welford's algorithm) z-score anomaly flagging\n" +
+            "• Detector resolution smearing & trigger efficiency modeling\n" +
+            "  (flat placeholders, but genuinely applied)\n\n" +
+            "Educational visualization — not production HEP analysis code."
+        );
+        msg.setEditable(false);
+        msg.setLineWrap(true);
+        msg.setWrapStyleWord(true);
+        msg.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        msg.setBackground(Bg);
+        msg.setForeground(Text_hi);
+        msg.setBorder(BorderFactory.createEmptyBorder(16, 18, 16, 18));
+        dlg.add(msg, BorderLayout.CENTER);
+        dlg.setVisible(true);
+    }
+
+    // Draws the same six equations shown on the slideshow's PHYSICS slide, so the
+    // reference is available at any time from the main window, not just at launch.
+    class FormulaPanel extends JPanel {
+        FormulaPanel() { setBackground(Panel_bg); }
+        @Override public void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int x = 24, y = 34, size = 20;
+
+            new MathType.Eq(g2, x, y, size, Text_hi)
+                .txt("\u03B3", true).txt("  =  ", false).frac("1", "\u221A(1 \u2212 \u03B2\u00B2)");
+            y += 48;
+            new MathType.Eq(g2, x, y, size, Text_hi)
+                .txt("KE", true).txt("  =  (", false).txt("\u03B3", true).txt(" \u2212 1)", false)
+                .txt("m", true).txt(" ", false).txt("c", true).sup("2");
+            y += 42;
+            new MathType.Eq(g2, x, y, size, Text_hi)
+                .txt("p", true).txt("  =  ", false).txt("\u03B3", true).txt("m", true).txt("v", true)
+                .gap(60).txt("E", true).txt("  =  ", false).txt("\u03B3", true).txt("m", true).txt("c", true).sup("2");
+            y += 46;
+            new MathType.Eq(g2, x, y, size, Text_hi)
+                .txt("m", true).sup("2").txt("  =  ", false)
+                .frac("(\u03A3E)\u00B2", "c\u2074").txt("  \u2212  ", false).frac("|\u03A3p|\u00B2", "c\u00B2");
+            y += 50;
+            new MathType.Eq(g2, x, y, size, Text_hi)
+                .txt("z", true).txt("  =  ", false).frac("x \u2212 \u03BC", "\u03C3");
+        }
+    }
 
     class SimCanvas extends JPanel {
         SimCanvas() {
@@ -771,24 +1002,24 @@ public class ParticleSimulation extends JFrame {
             g2.setColor(Grid_col); g2.setStroke(new BasicStroke(0.5f));
             for (int x = 0; x < w; x += 50) g2.drawLine(x, 0, x, h);
             for (int y = 0; y < h; y += 50) g2.drawLine(0, y, w, y);
-            g2.setColor(new Color(56, 189, 248, 30));
+            g2.setColor(new Color(45, 226, 255, 42));
             g2.fillRect(0, midY - 25, w, 20);
-            g2.setColor(new Color(236, 72, 153, 30));
+            g2.setColor(new Color(255, 46, 146, 42));
             g2.fillRect(0, midY - 5, w, 20);
             float dashOff = (float)(tick % 20);
             g2.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL,
                 0, new float[]{8, 6}, dashOff));
-            g2.setColor(new Color(255, 255, 255, 40));
+            g2.setColor(new Color(255, 255, 255, 60));
             g2.drawLine(0, midY, w, midY);
             g2.setStroke(new BasicStroke(1));
             g2.setFont(new Font("Monospaced", Font.BOLD, 9));
-            g2.setColor(new Color(56, 189, 248, 80));
+            g2.setColor(new Color(45, 226, 255, 110));
             for (int x = 80; x < w-40; x += 140) g2.drawString("→→", x, midY - 10);
-            g2.setColor(new Color(236, 72, 153, 80));
+            g2.setColor(new Color(255, 46, 146, 110));
             for (int x = 40; x < w-60; x += 140) g2.drawString("←←", x, midY + 14);
-            g2.setColor(new Color(56, 189, 248, 100));
+            g2.setColor(new Color(45, 226, 255, 140));
             g2.drawString("BEAM A  p →", 6, midY - 6);
-            g2.setColor(new Color(236, 72, 153, 100));
+            g2.setColor(new Color(255, 46, 146, 140));
             g2.drawString("BEAM B  p ←", 6, midY + 14);
             for (Flash f : flashes) f.draw(g2);
             for (ProductSprite s : products) s.draw(g2);
@@ -839,8 +1070,8 @@ public class ParticleSimulation extends JFrame {
                 g2.drawString(switch (p.flagKind) {
                     case Z_boson -> "Z"; case Higgs_win -> "H?"; default -> "!";
                 }, ix + ir + 2, iy - ir - 1);}
-            g2.setColor(new Color(p.col.getRed(), p.col.getGreen(), p.col.getBlue(), 38));
-            g2.fillOval((int)(ix - ir*2.1), (int)(iy - ir*2.1), (int)(ir*4.2), (int)(ir*4.2));
+            g2.setColor(new Color(p.col.getRed(), p.col.getGreen(), p.col.getBlue(), 60));
+            g2.fillOval((int)(ix - ir*2.4), (int)(iy - ir*2.4), (int)(ir*4.8), (int)(ir*4.8));
             g2.setColor(p.col);
             g2.fillOval(ix - ir, iy - ir, ir*2, ir*2);
             g2.setColor(new Color(255, 255, 255, 105));
@@ -874,7 +1105,7 @@ public class ParticleSimulation extends JFrame {
                 int y1 = (int)(sy + sh - zRingBuf[ia] / maxZ * sh);
                 int y2 = (int)(sy + sh - zRingBuf[ib] / maxZ * sh);
                 float frac = (float)i / len;
-                g2.setColor(new Color(56, 189, 248, (int)(50 + 140*frac)));
+                g2.setColor(new Color(45, 226, 255, (int)(70 + 160*frac)));
                 g2.drawLine(x1, y1, x2, y2);}}
 
         void drawLegend(Graphics2D g2, int w, int h) {
@@ -926,7 +1157,7 @@ public class ParticleSimulation extends JFrame {
                 g2.drawString(ln, cx+18, ty);
                 ty += 18;
                 if (ty > cy + cardH - 20) break;}
-            g2.setColor(new Color(56, 189, 248, 120));
+            g2.setColor(new Color(45, 226, 255, 160));
             g2.setFont(new Font("Monospaced", Font.BOLD, 10));
             g2.drawString("[ click anywhere ]", cx + cardW - 130, cy + cardH - 12);}}
 
@@ -1106,7 +1337,36 @@ public class ParticleSimulation extends JFrame {
             if (hBin < Bins) {
                 g2.setColor(Higgs_col);
                 g2.drawString("H?", leftPad + (int)(hBin * binW) - 5, botY - 3);
-            }}}
+            }
+
+            drawSignificance(g2, zBin);
+        }
+
+        // Illustrative local significance for the Z window: signal = counts inside
+        // the window, background = average counts per bin in a sideband just
+        // outside it, significance ≈ (signal − expected background) / √(expected
+        // background). This is the same S/√B logic real bump-hunts use as a first
+        // estimate, before a proper signal-vs-background fit — NOT a substitute
+        // for one, and it is explicitly labeled "illustrative".
+        void drawSignificance(Graphics2D g2, int zBin) {
+            int winLo = Math.max(0, zBin - 4), winHi = Math.min(Bins - 1, zBin + 4);
+            double signal = 0;
+            for (int i = winLo; i <= winHi; i++) signal += massHist[i];
+
+            double bkgSum = 0; int bkgBins = 0;
+            for (int i = Math.max(0, zBin - 12); i <= Math.min(Bins - 1, zBin + 12); i++) {
+                if (i < winLo - 2 || i > winHi + 2) { bkgSum += massHist[i]; bkgBins++; }
+            }
+            double bkgPerBin = bkgBins > 0 ? bkgSum / bkgBins : 0;
+            double expectedBkg = bkgPerBin * (winHi - winLo + 1);
+            double sig = expectedBkg > 1e-9 ? (signal - expectedBkg) / Math.sqrt(expectedBkg) : 0;
+
+            g2.setFont(new Font("Monospaced", Font.PLAIN, 8));
+            g2.setColor(Text_mid);
+            String txt = String.format("Z window: S/\u221AB \u2248 %.1f\u03C3 (illustrative)", Math.max(0, sig));
+            int w = g2.getFontMetrics().stringWidth(txt);
+            g2.drawString(txt, getWidth() - w - 6, 14);
+        }}
 
 
     static class SlideshowWindow extends JFrame {
@@ -1144,16 +1404,15 @@ public class ParticleSimulation extends JFrame {
                 "Each collision stores: mInv, KE, γ, px/py, z-score, type"},
             {
                 "PHYSICS",
+                "Typeset equations below — see also the Info button in the main window.",
                 "",
-                "γ = 1 / √(1 − v²/c²)",
-                "KE = (γ − 1) · m · c²",
-                "p = γ · m · v",
-                "E = γ · m · c²",
                 "",
-                "m_inv² = (E_A+E_B)²/c⁴ − |p_A+p_B|²/c²",
                 "",
-                "z = (m_inv − μ) / σ  (Welford's algorithm)",
-                "|z| > 2.5 → flagged anomaly"},};
+                "",
+                "",
+                "",
+                "",
+                "Refs: PDG masses · Welford (1962) · CMS Open Data record 545"},};
 
         int slide = 0;
         float fade = 0;
@@ -1238,14 +1497,47 @@ public class ParticleSimulation extends JFrame {
                 g2.drawString(lines[0], Math.max(18, (w-tw)/2), y);
                 y += 24;
 
+                if (lines[0].equals("PHYSICS")) {
+                    drawPhysicsSlide(g2, w, y);
+                    return;
+                }
+
                 for (int i = 1; i < lines.length; i++) {
                     String ln = lines[i];
                     if (ln.isEmpty()) { y += 8; continue; }
                     g2.setFont(new Font("Monospaced", Font.PLAIN, 10));
-                    g2.setColor(ln.startsWith("  ") ? new Color(255, 241, 118) : Text_hi);
+                    g2.setColor(ln.startsWith("  ") ? new Color(255, 234, 0) : Text_hi);
                     g2.drawString(ln, 30, y);
                     y += 18;
                 }
+            }
+
+            void drawPhysicsSlide(Graphics2D g2, int w, int yStart) {
+                g2.setFont(new Font("Monospaced", Font.PLAIN, 10));
+                g2.setColor(Text_dim);
+                g2.drawString("Typeset equations — see also the Info button in the main window.", 30, yStart);
+
+                int y = yStart + 34, x = 34, size = 19;
+                new MathType.Eq(g2, x, y, size, Text_hi)
+                    .txt("\u03B3", true).txt("  =  ", false).frac("1", "\u221A(1 \u2212 \u03B2\u00B2)");
+                y += 46;
+                new MathType.Eq(g2, x, y, size, Text_hi)
+                    .txt("KE", true).txt("  =  (", false).txt("\u03B3", true).txt(" \u2212 1)", false)
+                    .txt("m", true).txt(" ", false).txt("c", true).sup("2");
+                y += 40;
+                new MathType.Eq(g2, x, y, size, Text_hi)
+                    .txt("p", true).txt("  =  ", false).txt("\u03B3", true).txt("m", true).txt("v", true);
+                y += 40;
+                new MathType.Eq(g2, x, y, size, Text_hi)
+                    .txt("m", true).sup("2").txt("  =  ", false)
+                    .frac("(\u03A3E)\u00B2", "c\u2074").txt("  \u2212  ", false).frac("|\u03A3p|\u00B2", "c\u00B2");
+                y += 46;
+                new MathType.Eq(g2, x, y, size, Text_hi)
+                    .txt("z", true).txt("  =  ", false).frac("x \u2212 \u03BC", "\u03C3");
+
+                g2.setFont(new Font("Monospaced", Font.PLAIN, 9));
+                g2.setColor(Text_dim);
+                g2.drawString("Refs: PDG masses · Welford (1962) · CMS Open Data record 545", 30, y + 36);
             }
         }
     }
